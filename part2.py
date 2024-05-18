@@ -1,18 +1,36 @@
+from Bio import AlignIO
 from collections import Counter
+import pandas as pd
 
-# Read the consensus sequence from the file
-with open("clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num_consensus.txt", "r") as file:
-    consensus = file.read().replace('\n', '')
+# Read the MSA from the file
+msa = AlignIO.read("clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num", "clustal")
 
-# Calculate the frequency of each nucleotide in the consensus sequence
-nucleotide_freq = Counter(consensus)
+# Convert the MSA to a list of strings
+msa_sequences = [str(record.seq) for record in msa]
 
-# Calculate the percentage of each nucleotide
-nucleotide_percent = {nucleotide: count / len(consensus) * 100 for nucleotide, count in nucleotide_freq.items()}
+# Split the sequences into Omicron and Delta
+omicron_sequences = msa_sequences[:10]
+delta_sequences = msa_sequences[10:]
 
-# Calculate the CG content
-cg_content = (nucleotide_freq.get('C', 0) + nucleotide_freq.get('G', 0)) / len(consensus) * 100
+# Define a function to calculate the average nucleotide percentages and CG content for a list of sequences
+def calculate_averages(sequences):
+    # Calculate the frequency of each nucleotide and the CG content for each sequence
+    nucleotide_freqs = [Counter(seq) for seq in sequences]
+    nucleotide_percents = [{nucleotide: count / len(seq) * 100 for nucleotide, count in freq.items()} for seq, freq in zip(sequences, nucleotide_freqs)]
+    cg_contents = [(freq.get('C', 0) + freq.get('G', 0)) / len(seq) * 100 for seq, freq in zip(sequences, nucleotide_freqs)]
 
-print(nucleotide_freq)
-print(nucleotide_percent)
-print(f"CG content: {cg_content}%")
+    # Calculate the average percentage of each nucleotide and the average CG content
+    average_nucleotide_percent = {nucleotide: sum(percent[nucleotide] for percent in nucleotide_percents if nucleotide in percent) / len(nucleotide_percents) for nucleotide in ('A', 'C', 'G', 'T')}
+    average_cg_content = sum(cg_contents) / len(cg_contents)
+
+    return average_nucleotide_percent, average_cg_content
+
+# Calculate the averages for Omicron and Delta
+omicron_averages = calculate_averages(omicron_sequences)
+delta_averages = calculate_averages(delta_sequences)
+
+# Create a DataFrame to store the averages
+df = pd.DataFrame([omicron_averages, delta_averages], index=['Omicron', 'Delta'], columns=['Average Nucleotide Percent', 'Average CG Content'])
+
+# Save the DataFrame to a CSV file
+df.to_csv("averages.csv")
