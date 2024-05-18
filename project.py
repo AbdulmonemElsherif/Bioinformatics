@@ -7,7 +7,7 @@ from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstruct
 from Bio import Phylo
 
 # List of alignment files
-files = ["clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num"]
+files = ["(20seq msa).aln-clustal_num"]
 
 for file in files:
     # Read the alignment file

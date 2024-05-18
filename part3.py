@@ -1,11 +1,11 @@
 from Bio import AlignIO
 
 # Read the consensus sequence from its file
-with open("clustalo-I20240517-192453-0191-73736047-p1m.aln-clustal_num_consensus.txt", "r") as file:
+with open("DELTA(msa)_consensus.txt", "r") as file:
     consensus = file.read().replace('\n', '')
 
 # Read the alignment from the file
-msa = AlignIO.read("clustalo-I20240517-201759-0434-51888817-p1m.aln-clustal_num", "clustal")
+msa = AlignIO.read("Omicron(msa).aln-clustal_num", "clustal")
 
 # Convert the MSA to a list of strings
 msa_sequences = [str(record.seq) for record in msa]

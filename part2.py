@@ -3,7 +3,7 @@ from collections import Counter
 import pandas as pd
 
 # Read the MSA from the file
-msa = AlignIO.read("clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num", "clustal")
+msa = AlignIO.read("(20seq msa).aln-clustal_num", "clustal")
 
 # Convert the MSA to a list of strings
 msa_sequences = [str(record.seq) for record in msa]
