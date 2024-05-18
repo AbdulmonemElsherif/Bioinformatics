@@ -51,7 +51,7 @@ def display_dissimilar_regions(dissimilar_regions, reference_sequence, selected_
 
     dissimilar_positions = {position for _, position, _ in dissimilar_regions}
 
-    for i in range(min(1000, len(reference_sequence), len(selected_sequence))):
+    for i in range(min(len(reference_sequence), len(selected_sequence))):
         ref_color = 'black'
         sel_color = 'red' if i in dissimilar_positions else 'black'
         ref_text_box.insert("insert", reference_sequence[i], ref_color)
