@@ -1,18 +1,20 @@
+from Bio import AlignIO
 from collections import Counter
 
-# Read the consensus sequence from the file
-with open("clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num_consensus.txt", "r") as file:
-    consensus = file.read().replace('\n', '')
+# Read the MSA from the file
+msa = AlignIO.read("clustalo-I20240517-224204-0361-10233966-p1m(20seq).aln-clustal_num", "clustal")
 
-# Calculate the frequency of each nucleotide in the consensus sequence
-nucleotide_freq = Counter(consensus)
+# Convert the MSA to a list of strings
+msa_sequences = [str(record.seq) for record in msa]
 
-# Calculate the percentage of each nucleotide
-nucleotide_percent = {nucleotide: count / len(consensus) * 100 for nucleotide, count in nucleotide_freq.items()}
+# Calculate the frequency of each nucleotide and the CG content for each sequence in the MSA
+nucleotide_freqs = [Counter(seq) for seq in msa_sequences]
+nucleotide_percents = [{nucleotide: count / len(seq) * 100 for nucleotide, count in freq.items()} for seq, freq in zip(msa_sequences, nucleotide_freqs)]
+cg_contents = [(freq.get('C', 0) + freq.get('G', 0)) / len(seq) * 100 for seq, freq in zip(msa_sequences, nucleotide_freqs)]
 
-# Calculate the CG content
-cg_content = (nucleotide_freq.get('C', 0) + nucleotide_freq.get('G', 0)) / len(consensus) * 100
+# Calculate the average percentage of each nucleotide and the average CG content
+average_nucleotide_percent = {nucleotide: sum(percent[nucleotide] for percent in nucleotide_percents if nucleotide in percent) / len(nucleotide_percents) for nucleotide in ('A', 'C', 'G', 'T')}
+average_cg_content = sum(cg_contents) / len(cg_contents)
 
-print(nucleotide_freq)
-print(nucleotide_percent)
-print(f"CG content: {cg_content}%")
+print(average_nucleotide_percent)
+print(f"Average CG content: {average_cg_content}%")
