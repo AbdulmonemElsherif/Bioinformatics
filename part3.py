@@ -1,7 +1,7 @@
 from Bio import AlignIO
 
 # Read the consensus sequence from its file
-with open("DELTA(msa)_consensus.txt", "r") as file:
+with open("DELTA(msa).aln-clustal_num_consensus.txt", "r") as file:
     consensus = file.read().replace('\n', '')
 
 # Read the alignment from the file
