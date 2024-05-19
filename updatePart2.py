@@ -6,15 +6,15 @@ import seaborn as sns
 import scipy.stats as stats
 from scipy.stats import mannwhitneyu
 import csv
-# Read the MSA from the file
+
 omicron_alignment = AlignIO.read("Omicron(msa).aln-clustal_num", "clustal")
 delta_alignment = AlignIO.read("DELTA(msa).aln-clustal_num", "clustal")
 
-# Extract sequences from the alignment
+
 omicron_sequences = [str(record.seq) for record in omicron_alignment]
 delta_sequences = [str(record.seq) for record in delta_alignment]
 
-# Define a function to calculate the percentage of each chemical constituent and CG content for each sequence
+
 def calculate_sequence_stats(sequences, prefix):
     seq_stats = []
     for i, seq in enumerate(sequences):
@@ -29,35 +29,32 @@ def calculate_sequence_stats(sequences, prefix):
                           "A Percentage": a_percent, "CG Content": cg_content})
     return seq_stats
 
-# Calculate sequence statistics for Omicron and Delta
 omicron_stats = calculate_sequence_stats(omicron_sequences, "Omicron_seq")
 delta_stats = calculate_sequence_stats(delta_sequences, "Delta_seq")
 
-# Create DataFrames for Omicron and Delta
 omicron_df = pd.DataFrame(omicron_stats)
 delta_df = pd.DataFrame(delta_stats)
 
-# Concatenate the DataFrames
+
 combined_df = pd.concat([omicron_df, delta_df], ignore_index=True)
 
-# Calculate additional statistics
+
 additional_stats = combined_df.describe()
 
-# Perform normality tests for each variable
 normality_results = {}
 for column in combined_df.columns[1:]:  
     data = combined_df[column]
     # Shapiro-Wilk test
     statistic, p_value = shapiro(data)
     normality_results[column] = {"Shapiro-Wilk Statistic": statistic, "p-value": p_value}
-    # Visual inspection
+   
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    # Histogram
+   
     sns.histplot(data, kde=True, ax=axes[0])
     axes[0].set_title(f"Distribution of {column}")
     axes[0].set_xlabel(column)
     axes[0].set_ylabel("Frequency")
-    # Q-Q plot
+  
     stats.probplot(data, dist="norm", plot=axes[1])
     axes[1].set_title(f"Q-Q Plot of {column}")
     axes[1].set_xlabel("Theoretical Quantiles")
@@ -65,7 +62,7 @@ for column in combined_df.columns[1:]:
     plt.tight_layout()
     plt.show()
 
-# Save the combined DataFrame, additional statistics, and normality test results to CSV files
+
 combined_df.to_csv("sequence_stats.csv", index=False)
 additional_stats.to_csv("additional_stats.csv")
 normality_results_df = pd.DataFrame(normality_results).T
