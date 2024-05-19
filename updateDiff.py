@@ -1,32 +1,36 @@
 from Bio import AlignIO
-from Bio import SeqIO
+from collections import Counter
 import pandas as pd
 
+alignment_file = "referenceVSomicron.aln-clustal_num"
 
-omicron_alignment_file = "D:\\BioinformaticsProj\\Omicron(msa).aln-clustal_num"
-delta_consensus_file = "D:\\BioinformaticsProj\\DELTA(msa)_consensus.aln-clustal_num"
-
-
-omicron_alignment = AlignIO.read(omicron_alignment_file, "clustal")
-
-with open(delta_consensus_file, "r") as file:
-    delta_consensus = SeqIO.read(file, "fasta").seq
+alignment = AlignIO.read(alignment_file, "clustal")
 
 
-alignment_length = len(omicron_alignment[0].seq)
-omicron_df = pd.DataFrame([[seq[i] for seq in omicron_alignment] for i in range(alignment_length)])
-delta_consensus_df = pd.DataFrame([list(delta_consensus)])
+reference_seq = alignment[0].seq
 
-# Identify the positions with mismatches
+
+def find_dominant_nucleotide(column):
+    count = Counter(column)
+    dominant_nucleotide = count.most_common(1)[0][0]
+    return dominant_nucleotide
+
+alignment_length = len(reference_seq)
+comparison_results = []
 dissimilar_positions = []
-for i in range(alignment_length):
-    omicron_column = omicron_df.iloc[i]
-    consensus_base = delta_consensus_df.iloc[0, i]
-    if any(base != consensus_base for base in omicron_column):
-        dissimilar_positions.append(i)
 
-# Group continuous dissimilar positions into regions
+for i in range(alignment_length):
+    column = [record.seq[i] for record in alignment]
+    dominant_nucleotide = find_dominant_nucleotide(column[1:])  
+    reference_nucleotide = reference_seq[i]
+    if reference_nucleotide != dominant_nucleotide:
+        dissimilar_positions.append(i)
+    comparison_results.append((i, reference_nucleotide, dominant_nucleotide, reference_nucleotide != dominant_nucleotide))
+
+
 def group_continuous_positions(positions):
+    if not positions:
+        return []
     grouped_positions = []
     start = positions[0]
     end = positions[0]
@@ -43,7 +47,7 @@ def group_continuous_positions(positions):
 
 grouped_positions = group_continuous_positions(dissimilar_positions)
 
-# Extract the dissimilar regions and prepare for saving
+
 dissimilar_data = {
     "Region": [],
     "Positions": [],
@@ -54,26 +58,24 @@ dissimilar_data = {
 
 for start, end in grouped_positions:
     region_positions = list(range(start, end + 1))
-    delta_bases = [delta_consensus_df.iloc[0, pos] for pos in region_positions]
-    omicron_bases = [[omicron_df.iloc[pos, i] for i in range(len(omicron_alignment))] for pos in region_positions]
-    
+    delta_bases = [reference_seq[pos] for pos in region_positions]
+    omicron_bases = [[record.seq[pos] for record in alignment[1:]] for pos in region_positions]
+    dominant_omicron_bases = [find_dominant_nucleotide(bases) for bases in omicron_bases]
+
     mismatches = []
     for i, pos in enumerate(region_positions):
-        base_mismatches = [f"Seq {j+1}: {base}" for j, base in enumerate(omicron_bases[i]) if base != delta_bases[i]]
+        base_mismatches = [f"Seq {j+2}: {base}" for j, base in enumerate(omicron_bases[i]) if base != delta_bases[i]]
         if base_mismatches:
             mismatch_details = f"Position {pos}: Delta={delta_bases[i]}, Omicron=({', '.join(base_mismatches)})"
             mismatches.append(mismatch_details)
-    
+
     dissimilar_data["Region"].append(f"{start}-{end}")
     dissimilar_data["Positions"].append(region_positions)
     dissimilar_data["Delta Consensus"].append(delta_bases)
-    dissimilar_data["Omicron Sequences"].append(omicron_bases)
+    dissimilar_data["Omicron Sequences"].append(dominant_omicron_bases)
     dissimilar_data["Mismatch Details"].append("; ".join(mismatches))
 
-
 dissimilar_regions_df = pd.DataFrame(dissimilar_data)
-
-
 dissimilar_regions_df.to_csv("dissimilar_regions.csv", index=False)
 
 print("Dissimilar regions saved to dissimilar_regions.csv")
