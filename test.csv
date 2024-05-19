@@ -1,6 +1,6 @@
 Variable,Statistic,p-value,Hypothesis
-C Percentage,8.0,0.0016857381150136564,Reject the null hypothesis: there's a significant difference.
-G Percentage,13.0,0.005685557585766341,Reject the null hypothesis: there's a significant difference.
-T Percentage,10.0,0.0028065622375925453,Reject the null hypothesis: there's a significant difference.
-A Percentage,19.0,0.02103705621283932,Reject the null hypothesis: there's a significant difference.
-CG Content,9.0,0.0021853274789521097,Reject the null hypothesis: there's a significant difference.
+C Percentage,0.0,0.001953125,Reject the null hypothesis: there's a significant difference.
+G Percentage,2.0,0.005859375,Reject the null hypothesis: there's a significant difference.
+T Percentage,1.0,0.00390625,Reject the null hypothesis: there's a significant difference.
+A Percentage,7.0,0.037109375,Reject the null hypothesis: there's a significant difference.
+CG Content,0.0,0.001953125,Reject the null hypothesis: there's a significant difference.
