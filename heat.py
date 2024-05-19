@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from ast import literal_eval
 
-
 dissimilar_regions_df = pd.read_csv("dissimilar_regions.csv")
 
 
