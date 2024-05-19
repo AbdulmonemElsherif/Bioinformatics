@@ -1,12 +1,18 @@
 from Bio import AlignIO
 import pandas as pd
-from scipy.stats import ttest_rel
-
+from scipy.stats import shapiro
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scipy.stats as stats
+from scipy.stats import mannwhitneyu
+import csv
 # Read the MSA from the file
 omicron_alignment = AlignIO.read("Omicron(msa).aln-clustal_num", "clustal")
-delta_sequences = AlignIO.read("DELTA(msa).aln-clustal_num", "clustal")
+delta_alignment = AlignIO.read("DELTA(msa).aln-clustal_num", "clustal")
+
 # Extract sequences from the alignment
 omicron_sequences = [str(record.seq) for record in omicron_alignment]
+delta_sequences = [str(record.seq) for record in delta_alignment]
 
 # Define a function to calculate the percentage of each chemical constituent and CG content for each sequence
 def calculate_sequence_stats(sequences, prefix):
@@ -23,6 +29,7 @@ def calculate_sequence_stats(sequences, prefix):
                           "A Percentage": a_percent, "CG Content": cg_content})
     return seq_stats
 
+# Calculate sequence statistics for Omicron and Delta
 omicron_stats = calculate_sequence_stats(omicron_sequences, "Omicron_seq")
 delta_stats = calculate_sequence_stats(delta_sequences, "Delta_seq")
 
@@ -36,36 +43,58 @@ combined_df = pd.concat([omicron_df, delta_df], ignore_index=True)
 # Calculate additional statistics
 additional_stats = combined_df.describe()
 
-# Hypothesis Testing (Paired t-test) for comparing Omicron and Delta
-# Assume null hypothesis: there's no significant difference between Omicron and Delta sequences.
-# Alternative hypothesis: there's a significant difference between Omicron and Delta sequences.
-# We'll perform a two-tailed t-test.
+# Perform normality tests for each variable
+normality_results = {}
+for column in combined_df.columns[1:]:  
+    data = combined_df[column]
+    # Shapiro-Wilk test
+    statistic, p_value = shapiro(data)
+    normality_results[column] = {"Shapiro-Wilk Statistic": statistic, "p-value": p_value}
+    # Visual inspection
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # Histogram
+    sns.histplot(data, kde=True, ax=axes[0])
+    axes[0].set_title(f"Distribution of {column}")
+    axes[0].set_xlabel(column)
+    axes[0].set_ylabel("Frequency")
+    # Q-Q plot
+    stats.probplot(data, dist="norm", plot=axes[1])
+    axes[1].set_title(f"Q-Q Plot of {column}")
+    axes[1].set_xlabel("Theoretical Quantiles")
+    axes[1].set_ylabel(f"Ordered Values of {column}")
+    plt.tight_layout()
+    plt.show()
 
-hypothesis_comments = {
-    "C Percentage": "Null hypothesis: there's no significant difference between Omicron and Delta in terms of the percentage of C. Alternative hypothesis: there's a significant difference between Omicron and Delta in terms of the percentage of C.",
-    "G Percentage": "Null hypothesis: there's no significant difference between Omicron and Delta in terms of the percentage of G. Alternative hypothesis: there's a significant difference between Omicron and Delta in terms of the percentage of G.",
-    "T Percentage": "Null hypothesis: there's no significant difference between Omicron and Delta in terms of the percentage of T. Alternative hypothesis: there's a significant difference between Omicron and Delta in terms of the percentage of T.",
-    "A Percentage": "Null hypothesis: there's no significant difference between Omicron and Delta in terms of the percentage of A. Alternative hypothesis: there's a significant difference between Omicron and Delta in terms of the percentage of A.",
-    "CG Content": "Null hypothesis: there's no significant difference between Omicron and Delta in terms of the CG content. Alternative hypothesis: there's a significant difference between Omicron and Delta in terms of the CG content."
-}
-
-threshold = 0.05  
-
-test_results = {}
-for column in ["C Percentage", "G Percentage", "T Percentage", "A Percentage", "CG Content"]:
-    test_result = ttest_rel(omicron_df[column], delta_df[column])
-    if test_result.pvalue < threshold:
-        hypothesis = "Alternative hypothesis"
-    else:
-        hypothesis = "Null hypothesis"
-    test_results[column] = {"Statistic": test_result.statistic, "p-value": test_result.pvalue, "Hypothesis": hypothesis}
-
-# Save the combined DataFrame, additional statistics, and test results to a CSV file
+# Save the combined DataFrame, additional statistics, and normality test results to CSV files
 combined_df.to_csv("sequence_stats.csv", index=False)
 additional_stats.to_csv("additional_stats.csv")
+normality_results_df = pd.DataFrame(normality_results).T
+normality_results_df.to_csv("normality_test_results.csv")
+# Perform non-parametric tests (Mann-Whitney U test) for comparing Omicron and Delta
+# Null hypothesis: there's no significant difference between Omicron and Delta sequences.
+# Alternative hypothesis: there's a significant difference between Omicron and Delta sequences.
 
-# Save the test results with comments to the CSV file
-with open("test_results.csv", "a") as f:
-    for column in test_results:
-        f.write(f"{column}, {test_results[column]['Statistic']}, {test_results[column]['p-value']}, "
-                f"{hypothesis_comments[column]}, {test_results[column]['Hypothesis']}\n")
+# Dictionary to store test results
+test_results_nonparametric = []
+
+for column in ["C Percentage", "G Percentage", "T Percentage", "A Percentage", "CG Content"]:
+    # Perform Mann-Whitney U test
+    statistic, p_value = mannwhitneyu(omicron_df[column], delta_df[column], alternative='two-sided')
+    
+    # Store test results
+    result = {"Variable": column, "Statistic": statistic, "p-value": p_value}
+    
+    # Determine hypothesis based on p-value
+    if p_value < 0.05:
+        result["Hypothesis"] = "Reject the null hypothesis: there's a significant difference."
+    else:
+        result["Hypothesis"] = "Fail to reject the null hypothesis: there's no significant difference."
+    
+    # Append test results to the list
+    test_results_nonparametric.append(result)
+
+# Save test results to CSV file
+with open("test.csv", "w", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["Variable", "Statistic", "p-value", "Hypothesis"])
+    writer.writeheader()
+    writer.writerows(test_results_nonparametric)
