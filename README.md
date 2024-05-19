@@ -1,1 +1,1 @@
-Variant Analysis: Comparative Study of Delta and Omicron
+# Variant Analysis: Comparative Study of Delta and Omicron
